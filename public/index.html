@@ -79,14 +79,14 @@
         </tbody>
       </table>
       <button @click="createNew" v-if="isLoggedIn" class="btn btn-primary btn-sm">New Program</button>
-      <dialog id="new-program-dialog">
-        <h3>Create New Program</h3>
+      <dialog id="new-program-dialog" class="border rounded shadow">
+        <h4>Create New Program</h4>
         <label style="display: block">Program Name:</label>
-        <input v-model="newProgramName" />
+        <input v-model="newProgramName" class="form-control mt-1" />
         <div style="margin-top: 1em">
-          <button @click="createNewOk" style="font-weight: bold">Ok</button
+          <button @click="createNewOk" class="btn btn-primary btn-sm">Ok</button
           >&nbsp;
-          <button @click="createNewCancel">Cancel</button>
+          <button @click="createNewCancel" class="btn btn-secondary btn-sm">Cancel</button>
         </div>
       </dialog>
       <div class="loader-container" v-if="showLoader">

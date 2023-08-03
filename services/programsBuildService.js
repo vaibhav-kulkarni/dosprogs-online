@@ -26,10 +26,12 @@ async function build(programName, text) {
   // Unzip it
   const zip = await JSZip.loadAsync(bundleData);
 
+  const extension = programName.split('.').pop();
+
   // Add the program source file
-  zip.file("PROGRAM.C", text);
+  zip.file(`PROGRAM.${extension}`, text);
   // Add conf file
-  zip.file(".jsdos/dosbox.conf", getDosboxConf());
+  zip.file(".jsdos/dosbox.conf", getDosboxConf(extension));
 
   // Zip it
   const newZip = await zip.generateAsync({ type: "uint8array" });

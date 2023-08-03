@@ -1,4 +1,4 @@
-module.exports = function getDosboxConf() {
+module.exports = function getDosboxConf(extension) {
   return `
 [sdl]
 autolock=false
@@ -195,7 +195,7 @@ echo on
 
 REM @@__BUILD_START__@@
 
-tcc PROGRAM.C graphics.lib
+tcc PROGRAM.${extension} graphics.lib
 
 REM @@__BUILD_END__@@
 
