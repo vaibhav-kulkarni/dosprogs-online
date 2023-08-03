@@ -69,6 +69,7 @@
             </td>
             <td width="5%">
               <button
+                v-if="isLoggedIn"
                 class="btn btn-danger btn-sm text-nowrap"
                 @click="deleteProgram(program.name)"
               >
