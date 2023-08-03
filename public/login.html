@@ -106,7 +106,7 @@
 
       const username = ref("");
       const password = ref("");
-      const rememberMe = ref(true);
+      const rememberMe = ref(false);
       const showLoader = ref(false);
       createApp({
         setup() {
@@ -142,11 +142,11 @@
               showLoader.value = false;
             }
             if (rememberMe.value) {
-              sessionStorage.setItem("authValue", authValue);
-              localStorage.removeItem("authValue");
-            } else {
               localStorage.setItem("authValue", authValue);
               sessionStorage.removeItem("authValue");
+            } else {
+              sessionStorage.setItem("authValue", authValue);
+              localStorage.removeItem("authValue");
             }
             window.location.href = "/";
           },
