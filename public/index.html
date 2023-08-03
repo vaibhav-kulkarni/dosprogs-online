@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>DOS Programs Online</title>
+    <style>
+      [v-cloak] {
+        display: none;
+      }
+
+      .loader-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        background-color: rgba(255, 255, 255, 0.7);
+      }
+
+      .loader {
+        border: 12px solid #f3f3f3; /* Light grey */
+        border-top: 12px solid #3498db; /* Blue */
+        border-radius: 50%;
+        width: 80px;
+        height: 80px;
+        animation: spin 2s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app" v-cloak class="container">
+      <div class="d-flex justify-content-between pt-2 pb-4">
+        <div class="fs-2">Welcome to DOS Programs Online</div>
+        <div>
+          <a href="#" v-if="isLoggedIn" @click.prevent="logout">Logout</a
+          ><a href="login.html" v-else>Login</a>
+        </div>
+      </div>
+      <table class="table table-striped table-hover">
+        <tbody>
+          <tr v-for="program in programs">
+            <td class="align-middle">{{ program.name }}</td>
+            <td width="5%">
+              <a
+                class="btn btn-success btn-sm text-nowrap"
+                v-bind:href="'/runProgram.html?name=' + program.name"
+                >&#x25b6; Run</a
+              >
+            </td>
+            <td width="5%">
+              <a
+                v-bind:href="'/editProgram.html?name=' + program.name"
+                v-if="isLoggedIn"
+                class="btn btn-warning btn-sm text-nowrap"
+                >&#x270f; Edit</a
+              >
+            </td>
+            <td width="5%">
+              <button
+                class="btn btn-danger btn-sm text-nowrap"
+                @click="deleteProgram(program.name)"
+              >
+                &#x1f5d1; Delete
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <button @click="createNew" v-if="isLoggedIn" class="btn btn-primary btn-sm">New Program</button>
+      <dialog id="new-program-dialog">
+        <h3>Create New Program</h3>
+        <label style="display: block">Program Name:</label>
+        <input v-model="newProgramName" />
+        <div style="margin-top: 1em">
+          <button @click="createNewOk" style="font-weight: bold">Ok</button
+          >&nbsp;
+          <button @click="createNewCancel">Cancel</button>
+        </div>
+      </dialog>
+      <div class="loader-container" v-if="showLoader">
+        <div class="loader"></div>
+      </div>
+    </div>
+
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9"
+      crossorigin="anonymous"
+    />
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm"
+      crossorigin="anonymous"
+    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css"
+      rel="stylesheet"
+    />
+
+    <script type="module">
+      import {
+        createApp,
+        ref,
+        onMounted,
+      } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
+
+      function getAuthValue() {
+        return (
+          sessionStorage.getItem("authValue") ??
+          localStorage.getItem("authValue")
+        );
+      }
+
+      const isLoggedIn = ref(false);
+      const programs = ref([]);
+      const newProgramName = ref("");
+      const showLoader = ref(false);
+      async function fetchPrograms() {
+        let response;
+        try {
+          showLoader.value = true;
+          response = await fetch("/public-api/programs");
+          if (!response.ok) {
+            throw new Error(response.body);
+          }
+        } catch (err) {
+          toastr.error("Error getting programs list.");
+          console.error(err);
+          return;
+        } finally {
+          showLoader.value = false;
+        }
+        const data = await response.json();
+        programs.value = data;
+      }
+
+      createApp({
+        setup() {
+          return {
+            programs,
+            newProgramName,
+            showLoader,
+            isLoggedIn,
+          };
+        },
+        async mounted() {
+          const authValue = getAuthValue();
+          console.log("authValue", authValue);
+          if (authValue) {
+            isLoggedIn.value = true;
+          }
+          fetchPrograms();
+        },
+        methods: {
+          createNew() {
+            newProgramName.value = "";
+            const newProgramDialog =
+              document.getElementById("new-program-dialog");
+            newProgramDialog.showModal();
+          },
+          async createNewOk() {
+            try {
+              showLoader.value = true;
+              const response = await fetch("/api/programs", {
+                method: "POST",
+                body: JSON.stringify({ name: newProgramName.value, text: "" }),
+                headers: {
+                  Authorization: "Basic " + getAuthValue(),
+                  "Content-Type": "application/json",
+                },
+              });
+              if (!response.ok) {
+                throw new Error(response.body);
+              }
+            } catch (err) {
+              toastr.error("Error creating new program.");
+              console.error(err);
+              return;
+            } finally {
+              showLoader.value = false;
+            }
+            toastr.success("Created");
+            fetchPrograms();
+            const newProgramDialog =
+              document.getElementById("new-program-dialog");
+            newProgramDialog.close();
+          },
+          createNewCancel() {
+            const newProgramDialog =
+              document.getElementById("new-program-dialog");
+            newProgramDialog.close();
+          },
+          async deleteProgram(programName) {
+            if (!confirm(`Are you sure you want to delete the program ${programName}?`)) {
+              return;
+            }
+            try {
+              showLoader.value = true;
+              const response = await fetch("/api/programs/" + programName, {
+                method: "DELETE",
+                headers: {
+                  Authorization: "Basic " + getAuthValue(),
+                },
+              });
+              if (!response.ok) {
+                throw new Error(response.body);
+              }
+            } catch (err) {
+              toastr.error("Error deleting program program.");
+              console.error(err);
+              return;
+            } finally {
+              showLoader.value = false;
+            }
+            toastr.success("Deleted");
+            fetchPrograms();
+          },
+          logout() {
+            localStorage.removeItem("authValue");
+            sessionStorage.removeItem("authValue");
+            isLoggedIn.value = false;
+          },
+        },
+      }).mount("#app");
+    </script>
+  </body>
+</html>

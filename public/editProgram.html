@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>DOS Programs Online</title>
+    <style>
+      #editor {
+        width: 800px;
+        height: 550px;
+      }
+
+      .loader-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        background-color: rgba(255, 255, 255, 0.7);
+      }
+
+      .loader {
+        border: 12px solid #f3f3f3; /* Light grey */
+        border-top: 12px solid #3498db; /* Blue */
+        border-radius: 50%;
+        width: 80px;
+        height: 80px;
+        animation: spin 2s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <a href="/" style="margin-right: 20px">&#8701; File list</a>
+      <button @click="save">Save</button>
+      &nbsp;
+      <button @click="saveBuild">Save &amp; Build</button>
+      &nbsp;
+      <button @click="run">Run</button>
+      <!-- <textarea>{{ text }}</textarea> -->
+      <div class="loader-container" v-if="showLoader">
+        <div class="loader"></div>
+      </div>
+    </div>
+    <div id="editor"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.4/ace.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css"
+      rel="stylesheet"
+    />
+
+    <script type="module">
+      import {
+        createApp,
+        ref,
+        onMounted,
+      } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
+
+      const editor = ace.edit("editor");
+      editor.session.setMode("ace/mode/c_cpp");
+
+      function getAuthValue() {
+        return (
+          sessionStorage.getItem("authValue") ??
+          localStorage.getItem("authValue")
+        );
+      }
+
+      const programName = ref("");
+      const text = ref("");
+      const showLoader = ref(false);
+      createApp({
+        setup() {
+          return {
+            programName,
+            text,
+            showLoader,
+          };
+        },
+        async mounted() {
+          const params = new URLSearchParams(window.location.search);
+          const paramName = params.get("name");
+          let response;
+          try {
+            showLoader.value = true;
+            response = await fetch("/api/programs/" + paramName, {
+              headers: {
+                Authorization: "Basic " + getAuthValue(),
+              },
+            });
+            if (!response.ok) {
+              throw new Error(response.body);
+            }
+          } catch (err) {
+            toastr.error("Error loading file.");
+            console.error(err);
+            return;
+          } finally {
+            showLoader.value = false;
+          }
+          const data = await response.json();
+          programName.value = data.name;
+          text.value = data.text;
+          editor.session.setValue(data.text);
+        },
+        methods: {
+          async save() {
+            const params = new URLSearchParams(window.location.search);
+            const paramName = params.get("name");
+            try {
+              showLoader.value = true;
+              await fetch("/api/programs/" + paramName, {
+                method: "PATCH",
+                body: JSON.stringify({ text: editor.getValue() }),
+                headers: {
+                  Authorization: "Basic " + getAuthValue(),
+                  "Content-Type": "application/json",
+                },
+              });
+              if (!response.ok) {
+                throw new Error(response.body);
+              }
+            } catch (err) {
+              toastr.error("Error saving file.");
+              console.error(err);
+              return;
+            } finally {
+              showLoader.value = false;
+            }
+            toastr.success("Saved");
+          },
+          async saveBuild() {
+            const params = new URLSearchParams(window.location.search);
+            const paramName = params.get("name");
+            let response;
+            try {
+              showLoader.value = true;
+              response = await fetch("/api/save-build", {
+                method: "POST",
+                body: JSON.stringify({
+                  name: paramName,
+                  text: editor.getValue(),
+                }),
+                headers: {
+                  Authorization: "Basic " + getAuthValue(),
+                  "Content-Type": "application/json",
+                },
+              });
+              if (!response.ok) {
+                throw new Error(response.body);
+              }
+            } catch (err) {
+              toastr.error("Error saving and building file.");
+              console.error(err);
+              return;
+            } finally {
+              showLoader.value = false;
+            }
+            const data = await response.json();
+            if (data.isSuccess) {
+              toastr.success("Build successful");
+            } else {
+              toastr.error(data.output, "Build failed");
+            }
+          },
+          run() {
+            const params = new URLSearchParams(window.location.search);
+            const paramName = params.get("name");
+            console.log("Running program..");
+            window.location.href = "/runProgram.html?name=" + paramName;
+          },
+        },
+      }).mount("#app");
+    </script>
+  </body>
+</html>
