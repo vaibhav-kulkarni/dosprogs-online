@@ -23,7 +23,7 @@ memsize=16
 [cpu]
 core=auto
 cputype=auto
-cycles=fixed 3000
+cycles=fixed 10000
 
 cycleup=10
 cycledown=20
